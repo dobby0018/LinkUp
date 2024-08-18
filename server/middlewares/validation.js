@@ -1,36 +1,19 @@
 const { z } = require('zod');
-const { registerSchema, loginSchema } = require('../schemas/userSchemas');
 
-const validateRegister = async (req, res, next) => {
+const userSchema = z.object({
+  firstName: z.string().nonempty('First name is required'),
+  lastName: z.string().nonempty('Last name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters long'),
+});
+
+const validateUser = (req, res, next) => {
   try {
-    await registerSchema.parseAsync(req.body);
+    userSchema.parse(req.body);
     next();
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map((error) => {
-        return `${error.path[0]}: ${error.message}`;
-      });
-      res.status(400).json({ error: errorMessages.join(', ') });
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
+    res.status(400).json({ error: error.errors.map((err) => err.message).join(', ') });
   }
 };
 
-const validateLogin = async (req, res, next) => {
-  try {
-    await loginSchema.parseAsync(req.body);
-    next();
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map((error) => {
-        return `${error.path[0]}: ${error.message}`;
-      });
-      res.status(400).json({ error: errorMessages.join(', ') });
-    } else {
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  }
-};
-
-module.exports = { validateRegister, validateLogin };
+module.exports = validateUser;

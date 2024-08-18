@@ -12,74 +12,69 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
 
 const defaultTheme = createTheme();
 
 export default function SignIn() {
   const navigate = useNavigate();
 
-  // State variable for form data
+  // State for form data, errors, and success messages
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    loginAs: '',
   });
-
-  // State variable for error messages per field
   const [errors, setErrors] = useState({});
-  const [globalError, setGlobalError] = useState('');
+  const [success, setSuccess] = useState(''); // For success messages
 
-  // Handle form field changes
+  // Validate fields locally
+  const validateFields = () => {
+    const newErrors = {};
+    if (!formData.email) newErrors.email = 'Email is required';
+    if (!formData.password) newErrors.password = 'Password is required';
+    if (!formData.loginAs) newErrors.loginAs = 'Please select a role';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
+    setFormData((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!validateFields()) return; // Prevent submission if validation fails
+
     try {
       const response = await fetch('http://localhost:5000/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
       if (response.ok) {
-        console.log('Sign in successful:', data);
-        navigate('/home'); // Redirect to dashboard or another page on success
+        localStorage.setItem('token', data.token);
+        setSuccess('Login was successful!'); // Set success message
+        setTimeout(() => {
+          navigate('/home'); // Redirect to home after a delay
+        }, 1500); // Redirect after 1.5 seconds
       } else {
-        console.error('Sign in failed:', data);
-        if (data.error) {
-          setErrors(parseErrorMessages(data.error)); // Set field-specific error messages
-        } else {
-          setGlobalError('Sign in failed. Please check your credentials and try again.');
-        }
+        setErrors({ global: data.error.message || 'Failed to sign in' });
       }
     } catch (error) {
-      console.error('Error during sign in:', error);
-      setGlobalError('An unexpected error occurred. Please try again.');
+      setErrors({ global: 'An unexpected error occurred. Please try again.' });
     }
-  };
-
-  // Function to parse error messages and map them to fields
-  const parseErrorMessages = (errorString) => {
-    const errorArray = errorString.split(', ');
-    const errorObject = {};
-
-    errorArray.forEach(err => {
-      const [field, message] = err.split(': ');
-      errorObject[field.trim()] = message.trim();
-    });
-
-    return errorObject;
   };
 
   return (
@@ -113,7 +108,7 @@ export default function SignIn() {
               value={formData.email}
               onChange={handleChange}
               error={!!errors.email}
-              helperText={errors.email}
+              helperText={errors.email || ''}
             />
             <TextField
               margin="normal"
@@ -127,11 +122,39 @@ export default function SignIn() {
               value={formData.password}
               onChange={handleChange}
               error={!!errors.password}
-              helperText={errors.password}
+              helperText={errors.password || ''}
             />
-            {globalError && (
+            <RadioGroup
+              aria-label="login-as"
+              name="loginAs"
+              value={formData.loginAs}
+              onChange={handleChange}
+              sx={{ flexDirection: 'row', mt: 2 }}
+            >
+              <FormControlLabel
+                value="user"
+                control={<Radio />}
+                label="User"
+              />
+              <FormControlLabel
+                value="admin"
+                control={<Radio />}
+                label="Admin"
+              />
+            </RadioGroup>
+            {errors.loginAs && (
+              <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                {errors.loginAs}
+              </Typography>
+            )}
+            {errors.global && (
               <Alert severity="error" sx={{ mt: 2 }}>
-                {globalError}
+                {errors.global}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                {success}
               </Alert>
             )}
             <Button

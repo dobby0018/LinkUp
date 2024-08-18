@@ -12,7 +12,6 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
-
 const defaultTheme = createTheme();
 
 export default function SignUp() {
@@ -23,58 +22,122 @@ export default function SignUp() {
     firstName: '',
     lastName: '',
     email: '',
-    password: ''
+    password: '',
+    otp: '',
   });
 
   // State variable for error messages per field
   const [errors, setErrors] = useState({});
 
+  // State variable for the current step (1 or 2)
+  const [step, setStep] = useState(1);
+
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
+    setFormData((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  // Handle send OTP API request
+  const handleSendOTP = async (e) => {
+    e.preventDefault(); // Prevent the default form submission
     try {
-      // Make an API request to your backend endpoint
-      const response = await fetch('http://localhost:5000/api/users/register', {
+      const response = await fetch('http://localhost:5000/api/users/send-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Response data:', data); // Add this line to check response data
+      if (response.ok) {
+        setStep(2);
+      } else {
+        setErrors(parseErrorMessages(data.error));
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setErrors({ global: 'An unexpected error occurred. Please try again.' });
+    }
+  };
+
+  // Handle verify OTP API request
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault(); // Prevent the default form submission
+    try {
+      const response = await fetch('http://localhost:5000/api/users/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          otp: formData.otp,
+        }),
       });
 
       const data = await response.json();
       if (response.ok) {
-        console.log('Success:', data);
         navigate('/signin'); // Redirect to sign in page on success
       } else {
-        console.error('Error:', data);
-        setErrors(parseErrorMessages(data.error)); // Set field-specific error messages
+        setErrors(parseErrorMessages(data.error));
       }
     } catch (error) {
       console.error('Error:', error);
-      setErrors({ global: 'An unexpected error occurred. Please try again.' }); // Set a global error message
+      setErrors({ global: 'An unexpected error occurred. Please try again.' });
     }
   };
 
   // Function to parse error messages and map them to fields
   const parseErrorMessages = (errorString) => {
-    const errorArray = errorString.split(', ');
     const errorObject = {};
-
-    errorArray.forEach(err => {
-      const [field, message] = err.split(': ');
-      errorObject[field.trim()] = message.trim();
-    });
-
+    if (errorString) {
+      const errorArray = errorString.split(', ');
+      errorArray.forEach((err) => {
+        const [field, message] = err.split(': ');
+        if (field && message) {
+          errorObject[field.trim()] = message.trim();
+        }
+      });
+    }
     return errorObject;
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/users/resend-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log('OTP resent successfully');
+      } else {
+        setErrors(parseErrorMessages(data.error));
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setErrors({ global: 'An unexpected error occurred. Please try again.' });
+    }
   };
 
   return (
@@ -95,84 +158,128 @@ export default function SignUp() {
           <Typography component="h1" variant="h5">
             Sign up
           </Typography>
-          
-          <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  autoComplete="given-name"
-                  name="firstName"
-                  required
-                  fullWidth
-                  id="firstName"
-                  label="First Name"
-                  autoFocus
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  error={!!errors.firstName}
-                  helperText={errors.firstName}
-                />
+
+          {errors.global && (
+            <Typography color="error" sx={{ mt: 2 }}>
+              {errors.global}
+            </Typography>
+          )}
+
+          {step === 1 && (
+            <Box component="form" noValidate onSubmit={handleSendOTP} sx={{ mt: 3 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    autoComplete="given-name"
+                    name="firstName"
+                    required
+                    fullWidth
+                    id="firstName"
+                    label="First Name"
+                    autoFocus
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    error={!!errors.firstName}
+                    helperText={errors.firstName}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    required
+                    fullWidth
+                    id="lastName"
+                    label="Last Name"
+                    name="lastName"
+                    autoComplete="family-name"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    error={!!errors.lastName}
+                    helperText={errors.lastName}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    id="email"
+                    label="Email Address"
+                    name="email"
+                    autoComplete="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    error={!!errors.email}
+                    helperText={errors.email}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    name="password"
+                    label="Password"
+                    type="password"
+                    id="password"
+                    autoComplete="new-password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    error={!!errors.password}
+                    helperText={errors.password}
+                  />
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  id="lastName"
-                  label="Last Name"
-                  name="lastName"
-                  autoComplete="family-name"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  error={!!errors.lastName}
-                  helperText={errors.lastName}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  id="email"
-                  label="Email Address"
-                  name="email"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  error={!!errors.email}
-                  helperText={errors.email}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  name="password"
-                  label="Password"
-                  type="password"
-                  id="password"
-                  autoComplete="new-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  error={!!errors.password}
-                  helperText={errors.password}
-                />
-              </Grid>
-            </Grid>
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-            >
-              Sign Up
-            </Button>
-            <Grid container justifyContent="flex-end">
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, mb: 2 }}
+              >
+                Send OTP
+              </Button>
+              <Grid container justifyContent="flex-end">
               <Grid item>
                 <Link onClick={() => navigate('/signin')} variant="body2">
                   Already have an account? Sign in
                 </Link>
               </Grid>
             </Grid>
-          </Box>
+            </Box>
+          )}
+
+          {step === 2 && (
+            <Box component="form" noValidate onSubmit={handleVerifyOTP} sx={{ mt: 3 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    id="otp"
+                    label="OTP"
+                    name="otp"
+                    value={formData.otp}
+                    onChange={handleChange}
+                    error={!!errors.otp}
+                    helperText={errors.otp}
+                  />
+                </Grid>
+              </Grid>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, mb: 2 }}
+              >
+                Verify OTP
+              </Button>
+              <Button
+                fullWidth
+                variant="contained"
+                sx={{ mt: 1, mb: 2 }}
+                onClick={handleResendOTP}
+              >
+                Resend OTP
+              </Button>
+            </Box>
+          )}
         </Box>
       </Container>
     </ThemeProvider>

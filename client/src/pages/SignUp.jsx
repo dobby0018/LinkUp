@@ -1,8 +1,8 @@
 
 import Grid from '@mui/material/Grid';
 import Container from '@mui/material/Container';
-// import SignUp from '../components/SignUpComponent';
-import SignUp from '../components/sigg'; // Import your SignIn component
+ import SignUp from '../components/SignUpComponent';
+// import SignUp from '../components/sigg'; // Import your SignIn component
 import Logo from '../images/signup.svg'; // Import your logo image
 
 

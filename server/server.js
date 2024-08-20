@@ -5,7 +5,8 @@ const cors = require('cors');
 const port = 5000;
 require('dotenv').config();
 
-const userRoutes = require('./routes/userRoutes');
+const allUserRoutes = require('./routes/allUserRoutes');
+const adminRoutes=require('./routes/adminRoutes')
 const corsOptions = {
   origin: 'http://localhost:5173', // Replace with your frontend URL
   methods: 'GET,POST,PUT,DELETE',
@@ -26,8 +27,8 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
-app.use('/api/users', userRoutes);
-
+app.use('/api/users', allUserRoutes);
+app.use('/api/admin', adminRoutes);
 // const express = require('express');
 // const nodemailer = require('nodemailer');
 // const crypto = require('crypto');

@@ -1,8 +1,17 @@
 import  { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AdminAppBar from '../../components/admin/Appbar';
+import HomeComponent from '../../components/admin/Home';
+import ContactComponent from '../../components/admin/Contact';
+import SettingsComponent from '../../components/admin/Settings';
+import DashboardComponent from '../../components/admin/Dashboard';
+
 const Home = () => {
   const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
+  const [value, setValue] = useState(0);
+
+
   const fetchUserData = async () => {
     // Retrieve the token from localStorage
     const token = localStorage.getItem('token');
@@ -41,26 +50,18 @@ const Home = () => {
   const handleLogout = () => {
     // Remove the token from localStorage
     localStorage.removeItem('token');
-
+    localStorage.removeItem('userType');
+    localStorage.removeItem('loggedIn');
     // Optionally, navigate to the login page or another page
     navigate('/signin');
   };
   return (
     <div>
-      <h1>Home Page</h1>
-      {userData ? (
-        <div>
-          <p>Welcome, {userData.role} {userData.lastName}</p>
-          <p>Email: {userData.email}</p>
-          <div>
-      <h1>Welcome to our website!</h1>
-      <button onClick={handleLogout}>Logout</button>
-    </div>
-        </div>
-        
-      ) : (
-        <p>Loading...</p>
-      )}
+      <AdminAppBar value={value} setValue={setValue} handleLogout={handleLogout} />
+      {value === 0 && <HomeComponent />}
+      {value === 1 && <ContactComponent />}
+      {value === 2 && <DashboardComponent />}
+      {value === 3 && <SettingsComponent />}
     </div>
   );
 };

@@ -16,9 +16,10 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 
+
 const defaultTheme = createTheme();
 
-export default function SignIn() {
+export default function SignIn({onLogin}) {
   const navigate = useNavigate();
 
   // State for form data, errors, and success messages
@@ -65,10 +66,23 @@ export default function SignIn() {
       const data = await response.json();
       if (response.ok) {
         localStorage.setItem('token', data.token);
-        setSuccess('Login was successful!'); // Set success message
-        setTimeout(() => {
-          navigate('/home'); // Redirect to home after a delay
-        }, 1500); // Redirect after 1.5 seconds
+        localStorage.setItem('userType',formData.loginAs);
+        localStorage.setItem('loggedIn',true);
+        setSuccess('Login was successful!');
+        
+       
+        if (formData.loginAs === 'admin') {
+          setTimeout(() => {
+            onLogin(formData.loginAs);
+            navigate('/admin/home'); // Redirect to home after a delay
+          }, 1500);
+        } else {
+          setTimeout(() => {
+            onLogin(formData.loginAs);
+            navigate('/home'); // Redirect to home after a delay
+          }, 1500);
+        } 
+ // Redirect after 1.5 seconds
       } else {
         setErrors({ global: data.error.message || 'Failed to sign in' });
       }
